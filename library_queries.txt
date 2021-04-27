@@ -1,0 +1,54 @@
+-- Query 1: Number of books of each genre
+SELECT genres.genre AS "book genre", COUNT(books.genre_id) AS "number of books"
+FROM books
+INNER JOIN genres
+ON books.genre_id = genres.genre_id
+GROUP BY genres.genre;
+
+-- Query 2: Percent of the books written by female and male authors
+WITH 
+	number_of_books AS (
+	SELECT authors.gender, COUNT(authors.gender) AS number_of_books_written
+	FROM books
+	INNER JOIN authors
+	ON books.author_id = authors.author_id
+	GROUP BY authors.gender),
+	
+	total_books AS (
+	SELECT SUM(number_of_books_written) total_books
+	FROM number_of_books)
+	
+SELECT gender AS "author gender", number_of_books_written AS "number of books written", ROUND(number_of_books_written / total_books,2)*100 "percentage of library"
+FROM number_of_books, total_books;
+
+-- Query 3: Books written by authors not born in the USA
+SELECT books.title as "book title", authors.author_name AS author, authors.place_of_birth AS "place of birth of author"
+FROM books
+INNER JOIN authors
+ON books.author_id = authors.author_id
+WHERE authors.place_of_birth NOT ILIKE '%usa%';
+
+-- Query 4: How many other books the authors have written that are not found in the library
+WITH 
+	books_total AS (
+	SELECT authors.author_name AS author_name, authors.number_of_books_written AS books_written, COUNT(books.author_id) OVER (PARTITION BY authors.author_name) AS amount 
+	FROM books
+	INNER JOIN authors
+	ON books.author_id = authors.author_id)
+	
+SELECT DISTINCT author_name AS author, books_written - amount AS "amount of other books not in library"
+FROM books_total;
+
+-- Query 5: Average rating of genres greater than 4.00
+SELECT genres.genre, ROUND(AVG(books.rating), 2) AS average_rating
+FROM books
+INNER JOIN genres
+ON books.genre_id = genres.genre_id
+GROUP BY genres.genre
+HAVING ROUND(AVG(books.rating), 2) > 4.00
+ORDER BY ROUND(AVG(books.rating), 2) DESC;
+
+-- Query 6: Authors that were born before the 1900s
+SELECT author_name, birth_date
+FROM authors
+WHERE birth_date < '1900-01-01';
